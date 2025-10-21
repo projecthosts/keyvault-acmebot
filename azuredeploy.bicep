@@ -65,7 +65,7 @@ var acmebotAppSettings = [
   }
   {
     name: 'WEBSITE_RUN_FROM_PACKAGE'
-    value: 'https://acmebotdev.blob.core.windows.net/config/keyvault-acmebot-appgw-integration.zip'
+    value: 'https://42000acmebot.blob.core.usgovcloudapi.net/releases/keyvault-acmebot.zip'
   }
   {
     name: 'FUNCTIONS_EXTENSION_VERSION'
@@ -77,7 +77,7 @@ var acmebotAppSettings = [
   }
   {
     name: 'FUNCTIONS_WORKER_RUNTIME'
-    value: 'dotnet'
+    value: 'dotnet-isolated'
   }
   {
     name: 'Acmebot:Contacts'
