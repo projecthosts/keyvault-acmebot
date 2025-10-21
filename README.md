@@ -50,6 +50,53 @@ Key Vault Acmebot provides secure and centralized management of ACME certificate
   - SignalR Service (Premium)
   - Virtual Machine
 
+## Custom Features in This Fork
+
+This fork includes additional features not present in the upstream repository:
+
+### Certificate Tags
+Add custom metadata tags to Key Vault certificates during creation to organize and track certificates with flexible metadata (e.g., "Customer: Kraft", "Stage: production"). Tags are managed through the dashboard UI and stored directly in Azure Key Vault.
+
+**Key Features:**
+- Add/remove custom tags via dashboard UI
+- Tags stored as Key Vault certificate metadata
+- Protected system tags (Issuer, Endpoint, DnsProvider, DnsAlias) cannot be overwritten
+- View certificate tags in certificate details modal
+
+**Files Modified:**
+- `KeyVault.Acmebot/Models/CertificatePolicyItem.cs` - Added Tags property
+- `KeyVault.Acmebot/Models/CertificateItem.cs` - Added Tags property
+- `KeyVault.Acmebot/Internal/CertificateExtensions.cs` - Tag filtering and metadata handling
+- `KeyVault.Acmebot/Functions/SharedActivity.cs` - Certificate creation with tags
+- `KeyVault.Acmebot/wwwroot/dashboard/index.html` - UI for tag management
+
+### Application Gateway Integration
+Streamlined workflow for Application Gateway certificate deployments requiring specific Azure infrastructure tags. Provides a dedicated UI mode enforcing mandatory fields: EntraID, SubscriptionID, and KeyVaultName.
+
+**Key Features:**
+- Toggle "Application Gateway Integration" mode in dashboard
+- Enforced validation for 3 required Azure infrastructure tags
+- Compatible with custom tags feature (tags can be combined)
+- Client-side validation for internal use
+
+**Files Modified:**
+- `KeyVault.Acmebot/wwwroot/dashboard/index.html` - Application Gateway UI mode
+
+### Azure Government Cloud Support
+ARM deployment templates configured for Azure Government Cloud endpoints.
+
+**Configuration Changes:**
+- `FUNCTIONS_WORKER_RUNTIME` set to `dotnet-isolated`
+- `WEBSITE_RUN_FROM_PACKAGE` points to Azure Gov Cloud blob storage
+- Custom bicep version alignment
+
+**Files Modified:**
+- `azuredeploy.bicep`
+- `azuredeploy.json`
+- `.github/workflows/build.yml`
+
+For detailed implementation notes, see [IMPLEMENTATION_NOTES.md](IMPLEMENTATION_NOTES.md).
+
 ## Deployment
 
 | Azure (Public) | Azure China | Azure Government |
