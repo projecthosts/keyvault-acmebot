@@ -39,11 +39,6 @@ jobs:
           if [ "$UPSTREAM_COMMIT" != "$CURRENT_COMMIT" ]; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
 
-            # Get commit messages since our last merge
-            echo "commit_log<<EOF" >> $GITHUB_OUTPUT
-            git log --oneline --no-merges origin/master..upstream/master >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-
             # Count commits
             COMMIT_COUNT=$(git rev-list --count origin/master..upstream/master)
             echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
@@ -52,9 +47,6 @@ jobs:
             CRITICAL_COMMITS=$(git log --oneline --no-merges origin/master..upstream/master | grep -iE "security|vulnerability|critical|breaking|urgent|cve" || echo "")
             if [ -n "$CRITICAL_COMMITS" ]; then
               echo "has_critical=true" >> $GITHUB_OUTPUT
-              echo "critical_commits<<EOF" >> $GITHUB_OUTPUT
-              echo "$CRITICAL_COMMITS" >> $GITHUB_OUTPUT
-              echo "EOF" >> $GITHUB_OUTPUT
             else
               echo "has_critical=false" >> $GITHUB_OUTPUT
             fi
@@ -62,24 +54,28 @@ jobs:
             echo "has_changes=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Get full commit details
-        id: details
+      - name: Generate commit logs
+        id: logs
         if: steps.check.outputs.has_changes == 'true'
         run: |
-          echo "detailed_log<<EOF" >> $GITHUB_OUTPUT
-          git log --pretty=format:"**%h** - %s (%an, %ar)%n%b%n---" --no-merges origin/master..upstream/master >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          # Save commit logs to files
+          git log --oneline --no-merges origin/master..upstream/master > /tmp/commit_summary.txt
+          git log --oneline --no-merges origin/master..upstream/master | grep -iE "security|vulnerability|critical|breaking|urgent|cve" > /tmp/critical_commits.txt || echo "None" > /tmp/critical_commits.txt
+          git log --pretty=format:"**%h** - %s (%an, %ar)" --no-merges origin/master..upstream/master > /tmp/detailed_log.txt
 
       - name: Create or update issue
         if: steps.check.outputs.has_changes == 'true'
         uses: actions/github-script@v7
         with:
           script: |
+            const fs = require('fs');
             const commitCount = '${{ steps.check.outputs.commit_count }}';
             const hasCritical = '${{ steps.check.outputs.has_critical }}' === 'true';
-            const criticalCommits = `${{ steps.check.outputs.critical_commits }}`;
-            const commitLog = `${{ steps.check.outputs.commit_log }}`;
-            const detailedLog = `${{ steps.details.outputs.detailed_log }}`;
+
+            // Read commit logs from files
+            const commitLog = fs.readFileSync('/tmp/commit_summary.txt', 'utf8');
+            const criticalCommits = fs.readFileSync('/tmp/critical_commits.txt', 'utf8');
+            const detailedLog = fs.readFileSync('/tmp/detailed_log.txt', 'utf8');
 
             // Create issue title with critical flag if needed
             const title = hasCritical
@@ -93,15 +89,15 @@ jobs:
             if (hasCritical) {
               body += `## ⚠️ CRITICAL CHANGES DETECTED\n\n`;
               body += `The following commits contain critical keywords (security, vulnerability, breaking, etc.):\n\n`;
-              body += `\`\`\`\n${criticalCommits}\n\`\`\`\n\n`;
+              body += `\`\`\`\n${criticalCommits.trim()}\n\`\`\`\n\n`;
               body += `**Action Required**: Review these changes immediately and consider merging outside the monthly schedule.\n\n`;
             }
 
             body += `## Summary of Changes\n\n`;
-            body += `\`\`\`\n${commitLog}\n\`\`\`\n\n`;
+            body += `\`\`\`\n${commitLog.trim()}\n\`\`\`\n\n`;
 
             body += `## Detailed Commit Information\n\n`;
-            body += `${detailedLog}\n\n`;
+            body += `${detailedLog.trim()}\n\n`;
 
             body += `## Next Steps\n\n`;
             body += `1. Review the changes above\n`;
