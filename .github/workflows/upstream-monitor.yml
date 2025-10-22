@@ -1,0 +1,167 @@
+name: Monitor Upstream Repository
+
+on:
+  # Run every Monday at 9 AM UTC
+  schedule:
+    - cron: '0 9 * * 1'
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  check-upstream:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/shibayan/keyvault-acmebot.git || true
+          git fetch upstream
+
+      - name: Check for new commits
+        id: check
+        run: |
+          # Get the latest commit from upstream/master
+          UPSTREAM_COMMIT=$(git rev-parse upstream/master)
+          CURRENT_COMMIT=$(git rev-parse origin/master)
+
+          echo "upstream_commit=$UPSTREAM_COMMIT" >> $GITHUB_OUTPUT
+          echo "current_commit=$CURRENT_COMMIT" >> $GITHUB_OUTPUT
+
+          # Check if we're behind upstream
+          if [ "$UPSTREAM_COMMIT" != "$CURRENT_COMMIT" ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+
+            # Get commit messages since our last merge
+            echo "commit_log<<EOF" >> $GITHUB_OUTPUT
+            git log --oneline --no-merges origin/master..upstream/master >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+
+            # Count commits
+            COMMIT_COUNT=$(git rev-list --count origin/master..upstream/master)
+            echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
+
+            # Check for critical keywords
+            CRITICAL_COMMITS=$(git log --oneline --no-merges origin/master..upstream/master | grep -iE "security|vulnerability|critical|breaking|urgent|cve" || echo "")
+            if [ -n "$CRITICAL_COMMITS" ]; then
+              echo "has_critical=true" >> $GITHUB_OUTPUT
+              echo "critical_commits<<EOF" >> $GITHUB_OUTPUT
+              echo "$CRITICAL_COMMITS" >> $GITHUB_OUTPUT
+              echo "EOF" >> $GITHUB_OUTPUT
+            else
+              echo "has_critical=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get full commit details
+        id: details
+        if: steps.check.outputs.has_changes == 'true'
+        run: |
+          echo "detailed_log<<EOF" >> $GITHUB_OUTPUT
+          git log --pretty=format:"**%h** - %s (%an, %ar)%n%b%n---" --no-merges origin/master..upstream/master >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create or update issue
+        if: steps.check.outputs.has_changes == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const commitCount = '${{ steps.check.outputs.commit_count }}';
+            const hasCritical = '${{ steps.check.outputs.has_critical }}' === 'true';
+            const criticalCommits = `${{ steps.check.outputs.critical_commits }}`;
+            const commitLog = `${{ steps.check.outputs.commit_log }}`;
+            const detailedLog = `${{ steps.details.outputs.detailed_log }}`;
+
+            // Create issue title with critical flag if needed
+            const title = hasCritical
+              ? `🚨 CRITICAL: ${commitCount} new upstream commit(s) available`
+              : `📢 ${commitCount} new upstream commit(s) available`;
+
+            // Build issue body
+            let body = `# Upstream Changes Detected\n\n`;
+            body += `The upstream repository [shibayan/keyvault-acmebot](https://github.com/shibayan/keyvault-acmebot) has **${commitCount} new commit(s)** since our last sync.\n\n`;
+
+            if (hasCritical) {
+              body += `## ⚠️ CRITICAL CHANGES DETECTED\n\n`;
+              body += `The following commits contain critical keywords (security, vulnerability, breaking, etc.):\n\n`;
+              body += `\`\`\`\n${criticalCommits}\n\`\`\`\n\n`;
+              body += `**Action Required**: Review these changes immediately and consider merging outside the monthly schedule.\n\n`;
+            }
+
+            body += `## Summary of Changes\n\n`;
+            body += `\`\`\`\n${commitLog}\n\`\`\`\n\n`;
+
+            body += `## Detailed Commit Information\n\n`;
+            body += `${detailedLog}\n\n`;
+
+            body += `## Next Steps\n\n`;
+            body += `1. Review the changes above\n`;
+            body += `2. Check the [upstream compare view](https://github.com/shibayan/keyvault-acmebot/compare/master...projecthosts:keyvault-acmebot:master)\n`;
+            body += `3. ${hasCritical ? '**Merge immediately if critical**' : 'Plan to merge during next monthly sync'}\n`;
+            body += `4. Test custom features after merge:\n`;
+            body += `   - Certificate Tags Feature\n`;
+            body += `   - Application Gateway Integration\n`;
+            body += `   - Custom ARM deployment configurations\n\n`;
+
+            body += `---\n`;
+            body += `*This issue was automatically generated by the upstream monitoring workflow.*\n`;
+            body += `*Weekly check date: ${new Date().toISOString().split('T')[0]}*`;
+
+            // Check for existing open issue
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'upstream-sync'
+            });
+
+            const existingIssue = issues.data.find(issue =>
+              issue.title.includes('new upstream commit')
+            );
+
+            if (existingIssue) {
+              // Update existing issue
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existingIssue.number,
+                title: title,
+                body: body,
+                labels: hasCritical ? ['upstream-sync', 'critical'] : ['upstream-sync']
+              });
+
+              // Add comment about update
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existingIssue.number,
+                body: `Updated with latest upstream changes (${commitCount} total commits)`
+              });
+
+              console.log(`Updated issue #${existingIssue.number}`);
+            } else {
+              // Create new issue
+              const newIssue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: hasCritical ? ['upstream-sync', 'critical'] : ['upstream-sync']
+              });
+
+              console.log(`Created issue #${newIssue.data.number}`);
+            }
+
+      - name: No changes detected
+        if: steps.check.outputs.has_changes == 'false'
+        run: |
+          echo "✅ No new commits from upstream. Repository is up to date."
