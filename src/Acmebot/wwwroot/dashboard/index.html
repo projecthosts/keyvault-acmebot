@@ -257,6 +257,25 @@
               </div>
               <div class="field is-horizontal">
                 <div class="field-label">
+                  <label class="label">Replicate to DR KeyVault?</label>
+                </div>
+                <div class="field-body">
+                  <div class="field is-narrow">
+                    <div class="control">
+                      <label class="radio">
+                        <input type="radio" v-model="add.useDrReplication" :value="true">
+                        Yes
+                      </label>
+                      <label class="radio">
+                        <input type="radio" v-model="add.useDrReplication" :value="false">
+                        No
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="field is-horizontal">
+                <div class="field-label">
                   <label class="label">Use Advanced Options?</label>
                 </div>
                 <div class="field-body">
@@ -604,6 +623,7 @@
             appGwEntraId: "",
             appGwSubscriptionId: "",
             appGwKeyVaultName: "",
+            useDrReplication: false,
             useAdvancedOptions: false,
             certificateName: "",
             keyType: "RSA",
@@ -727,7 +747,8 @@
             dnsProviderName: this.add.dnsProviderName,
             certificateName: this.add.certificateName,
             keyType: this.add.keyType,
-            reuseKey: this.add.reuseKey
+            reuseKey: this.add.reuseKey,
+            useDrReplication: this.add.useDrReplication
           };
 
           if (this.add.keyType === "RSA") {
@@ -779,6 +800,7 @@
           this.add.appGwEntraId = "";
           this.add.appGwSubscriptionId = "";
           this.add.appGwKeyVaultName = "";
+          this.add.useDrReplication = false;
           this.add.tags = {};
           this.add.tagKey = "";
           this.add.tagValue = "";
