@@ -39,7 +39,7 @@ param keyVaultBaseUrl string = ''
 param enableDrReplication bool = false
 
 @description('If true, create a new DR Key Vault. If false, use an existing one specified by drVaultBaseUrl.')
-param createWithDrVault bool = true
+param createWithDrVault bool = false
 
 @description('The Azure region for the new DR Key Vault. Should differ from the primary vault region for disaster recovery.')
 param drVaultLocation string = ''
