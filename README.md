@@ -6,16 +6,10 @@
   (App Service / Container Apps / Application Gateway / Front Door / CDN / others)
 </p>
 <p align="center">
-  <a href="https://github.com/shibayan/keyvault-acmebot/actions/workflows/build.yml" rel="nofollow"><img src="https://github.com/shibayan/keyvault-acmebot/workflows/Build/badge.svg" alt="Build" style="max-width: 100%;"></a>
-  <a href="https://github.com/shibayan/keyvault-acmebot/releases/latest" rel="nofollow"><img src="https://badgen.net/github/release/shibayan/keyvault-acmebot" alt="Release" style="max-width: 100%;"></a>
-  <a href="https://github.com/shibayan/keyvault-acmebot/stargazers" rel="nofollow"><img src="https://badgen.net/github/stars/shibayan/keyvault-acmebot" alt="Stargazers" style="max-width: 100%;"></a>
-  <a href="https://github.com/shibayan/keyvault-acmebot/network/members" rel="nofollow"><img src="https://badgen.net/github/forks/shibayan/keyvault-acmebot" alt="Forks" style="max-width: 100%;"></a>
-  <a href="https://github.com/shibayan/keyvault-acmebot/blob/master/LICENSE"><img src="https://badgen.net/github/license/shibayan/keyvault-acmebot" alt="License" style="max-width: 100%;"></a>
-  <a href="https://registry.terraform.io/modules/shibayan/keyvault-acmebot/azurerm/latest" rel="nofollow"><img src="https://badgen.net/badge/terraform/registry/5c4ee5" alt="Terraform" style="max-width: 100%;"></a>
-  <br>
-  <a href="https://github.com/shibayan/keyvault-acmebot/commits/master" rel="nofollow"><img src="https://badgen.net/github/last-commit/shibayan/keyvault-acmebot" alt="Last commit" style="max-width: 100%;"></a>
+  <a href="https://github.com/projecthosts/keyvault-acmebot/actions/workflows/build.yml" rel="nofollow"><img src="https://github.com/projecthosts/keyvault-acmebot/workflows/Build/badge.svg" alt="Build" style="max-width: 100%;"></a>
+  <a href="https://github.com/projecthosts/keyvault-acmebot/blob/master/LICENSE"><img src="https://badgen.net/github/license/projecthosts/keyvault-acmebot" alt="License" style="max-width: 100%;"></a>
+  <a href="https://github.com/projecthosts/keyvault-acmebot/commits/master" rel="nofollow"><img src="https://badgen.net/github/last-commit/projecthosts/keyvault-acmebot" alt="Last commit" style="max-width: 100%;"></a>
   <a href="https://github.com/shibayan/keyvault-acmebot/wiki" rel="nofollow"><img src="https://badgen.net/badge/documentation/available/ff7733" alt="Documentation" style="max-width: 100%;"></a>
-  <a href="https://github.com/shibayan/keyvault-acmebot/discussions" rel="nofollow"><img src="https://badgen.net/badge/discussions/welcome/ff7733" alt="Discussions" style="max-width: 100%;"></a>
 </p>
 
 ## Motivation
@@ -63,13 +57,6 @@ Add custom metadata tags to Key Vault certificates during creation to organize a
 - Protected system tags (Issuer, Endpoint, DnsProvider, DnsAlias) cannot be overwritten
 - View certificate tags in certificate details modal
 
-**Files Modified:**
-- `KeyVault.Acmebot/Models/CertificatePolicyItem.cs` - Added Tags property
-- `KeyVault.Acmebot/Models/CertificateItem.cs` - Added Tags property
-- `KeyVault.Acmebot/Internal/CertificateExtensions.cs` - Tag filtering and metadata handling
-- `KeyVault.Acmebot/Functions/SharedActivity.cs` - Certificate creation with tags
-- `KeyVault.Acmebot/wwwroot/dashboard/index.html` - UI for tag management
-
 ### Application Gateway Integration
 Streamlined workflow for Application Gateway certificate deployments requiring specific Azure infrastructure tags. Provides a dedicated UI mode enforcing mandatory fields: EntraID, SubscriptionID, and KeyVaultName.
 
@@ -79,53 +66,42 @@ Streamlined workflow for Application Gateway certificate deployments requiring s
 - Compatible with custom tags feature (tags can be combined)
 - Client-side validation for internal use
 
-**Files Modified:**
-- `KeyVault.Acmebot/wwwroot/dashboard/index.html` - Application Gateway UI mode
+### DR Vault Replication
+Opt-in certificate replication to a secondary Key Vault in a different region for disaster recovery. When enabled for a certificate, after issuance the complete certificate (including private key) is exported from the primary vault and imported into the DR vault, ensuring both vaults stay in sync.
 
-### Azure Government Cloud Support
-ARM deployment templates configured for Azure Government Cloud endpoints.
+**Key Features:**
+- Per-certificate opt-in via "DR Vault Replication" toggle in the Add Certificate dialog
+- Full certificate parity — cert, private key, and all tags are replicated to DR vault
+- DR failure is blocking: if replication fails, the operation surfaces an error so issues are investigated rather than silently ignored
+- Renewal inherits DR replication flag automatically — no manual re-enabling required
 
-**Configuration Changes:**
-- `FUNCTIONS_WORKER_RUNTIME` set to `dotnet-isolated`
-- `WEBSITE_RUN_FROM_PACKAGE` points to Azure Gov Cloud blob storage
-- Custom bicep version alignment
-
-**Files Modified:**
-- `azuredeploy.bicep`
-- `azuredeploy.json`
-- `.github/workflows/build.yml`
-
-For detailed implementation notes, see [IMPLEMENTATION_NOTES.md](IMPLEMENTATION_NOTES.md).
+**Configuration:**
+- Set `Acmebot:DrVaultBaseUrl` app setting to the DR Key Vault URI
+- Grant the function app managed identity `Key Vault Certificates Officer` on the DR vault
+- Grant the function app managed identity `Key Vault Secrets User` on the primary vault
 
 ## Deployment
 
-| Azure (Public) | Azure China | Azure Government |
-| :---: | :---: | :---: |
-| <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprojecthosts%2Fkeyvault-acmebot%2Fmaster%2Fdeploy%2Fazuredeploy_consumption.bicep" target="_blank"><img src="https://aka.ms/deploytoazurebutton" /></a> | <a href="https://portal.azure.cn/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprojecthosts%2Fkeyvault-acmebot%2Fmaster%2Fdeploy%2Fazuredeploy_consumption.bicep" target="_blank"><img src="https://aka.ms/deploytoazurebutton" /></a> | <a href="https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprojecthosts%2Fkeyvault-acmebot%2Fmaster%2Fdeploy%2Fazuredeploy_consumption.bicep" target="_blank"><img src="https://aka.ms/deploytoazurebutton" /></a> |
+| Azure (Public) | Azure Government |
+| :---: | :---: |
+| <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprojecthosts%2Fkeyvault-acmebot%2Fmaster%2Fdeploy%2Fazuredeploy_consumption.bicep" target="_blank"><img src="https://aka.ms/deploytoazurebutton" /></a> | <a href="https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprojecthosts%2Fkeyvault-acmebot%2Fmaster%2Fdeploy%2Fazuredeploy_consumption.bicep" target="_blank"><img src="https://aka.ms/deploytoazurebutton" /></a> |
+
+**Post-deployment: Authentication required.** Fresh deployments from the ARM template do not have authentication configured. The dashboard will return 401 Unauthorized until an identity provider is set up:
+
+1. Portal → Function App → **Authentication**
+2. Click **Add identity provider** → Select **Microsoft**
+3. Set **Unauthenticated requests** to `HTTP 302 Found (Redirect)`
+4. Save
 
 For detailed setup instructions, see: [Getting Started](https://github.com/shibayan/keyvault-acmebot/wiki/Getting-Started)
 
-## Sponsors
-
-[![ZEN Architects](docs/images/zenarchitects.png)](https://zenarchitects.co.jp)
-
-Thank you for your support of our development. Interested in supporting the project? [Become a Sponsor](https://github.com/sponsors/shibayan)
-
 ## Thanks
 
+- [keyvault-acmebot](https://github.com/shibayan/keyvault-acmebot) by @shibayan and contributors
 - [ACMESharp Core](https://github.com/PKISharp/ACMESharpCore) by @ebekker
 - [Durable Functions](https://github.com/Azure/azure-functions-durable-extension) by @cgillum and contributors
 - [DnsClient.NET](https://github.com/MichaCo/DnsClient.NET) by @MichaCo
 
-## Commercial Support
-
-Commercial support for Acmebot is planned to be offered by Polymind Inc.
-
-Details of the support offerings are not yet finalized and will be announced separately.
-Acmebot remains fully open source and free to use under the Apache License 2.0.
-
-If you are interested in future commercial support, please reach out to [Polymind Inc.](https://github.com/polymind-inc).
-
 ## License
 
-This project is licensed under the [Apache License 2.0](https://github.com/shibayan/keyvault-acmebot/blob/master/LICENSE)
+This project is licensed under the [Apache License 2.0](https://github.com/projecthosts/keyvault-acmebot/blob/master/LICENSE)
