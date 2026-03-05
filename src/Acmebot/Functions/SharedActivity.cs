@@ -12,6 +12,7 @@ using ACMESharp.Protocol.Resources;
 
 using Azure.Core;
 using Azure.Security.KeyVault.Certificates;
+using Azure.Security.KeyVault.Secrets;
 
 using DnsClient;
 
@@ -36,6 +37,9 @@ public class SharedActivity(
     private readonly AcmebotOptions _options = options.Value;
     private readonly CertificateClient? _drClient = !string.IsNullOrEmpty(options.Value.DrVaultBaseUrl)
         ? new CertificateClient(new Uri(options.Value.DrVaultBaseUrl), credential)
+        : null;
+    private readonly SecretClient? _secretClient = !string.IsNullOrEmpty(options.Value.DrVaultBaseUrl)
+        ? new SecretClient(new Uri(options.Value.VaultBaseUrl), credential)
         : null;
 
     [Function(nameof(GetRenewalCertificates))]
@@ -424,27 +428,6 @@ public class SharedActivity(
             csr = certificateOperation.Properties.Csr;
         }
 
-        if (certificatePolicyItem.UseDrReplication && _drClient != null)
-        {
-            try
-            {
-                await _drClient.StartCreateCertificateAsync(
-                    certificatePolicyItem.CertificateName,
-                    certificatePolicy,
-                    enabled: true,
-                    tags: metadata,
-                    cancellationToken: default
-                );
-
-                logger.LogInformation("Certificate {CertificateName} replicated to DR vault", certificatePolicyItem.CertificateName);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Failed to replicate certificate {CertificateName} to DR vault", certificatePolicyItem.CertificateName);
-                throw;
-            }
-        }
-
         // Order の最終処理を実行する
         var acmeProtocolClient = await acmeProtocolClientFactory.CreateClientAsync();
 
@@ -490,25 +473,28 @@ public class SharedActivity(
             [certBytes]
         );
 
-        var result = (await certificateClient.MergeCertificateAsync(mergeCertificateOptions)).Value.ToCertificateItem();
+        var mergedCertificate = (await certificateClient.MergeCertificateAsync(mergeCertificateOptions)).Value;
+        var result = mergedCertificate.ToCertificateItem();
 
-        if (certificatePolicyItem.UseDrReplication && _drClient != null)
+        if (certificatePolicyItem.UseDrReplication && _drClient != null && _secretClient != null)
         {
             try
             {
-                var drMergeOptions = new MergeCertificateOptions(
-                    certificatePolicyItem.CertificateName,
-                    [certBytes]
-                );
+                var secret = await _secretClient.GetSecretAsync(certificatePolicyItem.CertificateName);
+                var pfxBytes = Convert.FromBase64String(secret.Value.Value);
 
-                await _drClient.MergeCertificateAsync(drMergeOptions);
+                var importOptions = new ImportCertificateOptions(certificatePolicyItem.CertificateName, pfxBytes);
+                foreach (var tag in mergedCertificate.Properties.Tags)
+                    importOptions.Tags.Add(tag.Key, tag.Value);
 
-                logger.LogInformation("Certificate {CertificateName} merged into DR vault", certificatePolicyItem.CertificateName);
+                await _drClient.ImportCertificateAsync(importOptions);
+
+                logger.LogInformation("Certificate {CertificateName} replicated to DR vault", certificatePolicyItem.CertificateName);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to merge certificate {CertificateName} into DR vault", certificatePolicyItem.CertificateName);
-                throw;
+                logger.LogError(ex, "Failed to replicate certificate {CertificateName} to DR vault", certificatePolicyItem.CertificateName);
+                throw new InvalidOperationException($"DR vault replication failed for {certificatePolicyItem.CertificateName}: {ex.Message}", ex);
             }
         }
 
