@@ -536,6 +536,17 @@
                 </div>
                 <div class="field is-horizontal">
                   <div class="field-label">
+                    <label class="label">DR Vault Replication</label>
+                  </div>
+                  <div class="field-body">
+                    <div class="content">
+                      <span v-if="details.certificate.useDrReplication" class="tag is-success">Enabled</span>
+                      <span v-else class="tag is-light">Disabled</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="field is-horizontal">
+                  <div class="field-label">
                     <label class="label">Issued by Acmebot?</label>
                   </div>
                   <div class="field-body">
