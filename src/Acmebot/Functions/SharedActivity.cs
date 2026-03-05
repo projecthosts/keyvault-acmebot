@@ -485,7 +485,9 @@ public class SharedActivity(
 
                 var importOptions = new ImportCertificateOptions(certificatePolicyItem.CertificateName, pfxBytes);
                 foreach (var tag in mergedCertificate.Properties.Tags)
+                {
                     importOptions.Tags.Add(tag.Key, tag.Value);
+                }
 
                 await _drClient.ImportCertificateAsync(importOptions);
 
