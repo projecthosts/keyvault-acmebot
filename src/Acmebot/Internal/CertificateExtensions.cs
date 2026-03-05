@@ -43,6 +43,7 @@ internal static class CertificateExtensions
             IsExpired = DateTimeOffset.UtcNow > certificate.Properties.ExpiresOn.GetValueOrDefault(DateTimeOffset.MaxValue),
             AcmeEndpoint = certificate.Properties.Tags.TryGetEndpoint(out var acmeEndpoint) ? NormalizeEndpoint(acmeEndpoint) : "",
             DnsAlias = certificate.Properties.Tags.TryGetDnsAlias(out var dnsAlias) ? dnsAlias : "",
+            UseDrReplication = certificate.Properties.Tags.TryGetDrReplicated(out var drReplicated) && drReplicated == "true",
             Tags = customTags
         };
     }
