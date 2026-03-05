@@ -13,6 +13,8 @@ public class AcmebotOptions
     [Required]
     public required string VaultBaseUrl { get; set; }
 
+    public string? DrVaultBaseUrl { get; set; }
+
     public Uri? Webhook { get; set; }
 
     [Required]

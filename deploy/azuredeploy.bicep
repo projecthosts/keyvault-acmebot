@@ -35,6 +35,9 @@ param keyVaultSkuName string = 'standard'
 @description('Enter the base URL of an existing Key Vault. (ex. https://example.vault.azure.net)')
 param keyVaultBaseUrl string = ''
 
+@description('Enter the base URL of an existing DR Key Vault for certificate replication. (ex. https://example.vault.azure.net) Leave empty to disable DR replication.')
+param drVaultBaseUrl string = ''
+
 @description('Specifies additional name/value pairs to be appended to the functionap app appsettings.')
 param additionalAppSettings array = []
 
@@ -49,6 +52,13 @@ var keyVaultName = 'kv-${appNamePrefix}-${take(generatedToken, 4)}'
 var deploymentStorageContainerName = 'app-package-${take(appNamePrefix, 32)}-${take(generatedToken, 7)}'
 
 var roleDefinitionId = resourceId('Microsoft.Authorization/roleDefinitions/', 'a4417e6f-fecd-4de8-b567-7b0420556985')
+
+var drVaultAppSettings = !empty(drVaultBaseUrl) ? [
+  {
+    name: 'Acmebot__DrVaultBaseUrl'
+    value: drVaultBaseUrl
+  }
+] : []
 
 var acmebotAppSettings = [
   {
@@ -177,7 +187,7 @@ resource functionApp 'Microsoft.Web/sites@2025-03-01' = {
       }
     }
     siteConfig: {
-      appSettings: concat(acmebotAppSettings, additionalAppSettings)
+      appSettings: concat(acmebotAppSettings, drVaultAppSettings, additionalAppSettings)
       minTlsVersion: '1.2'
       cors: {
         allowedOrigins: ['https://portal.azure.com']

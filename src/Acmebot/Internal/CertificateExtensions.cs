@@ -24,7 +24,7 @@ internal static class CertificateExtensions
 
         // Extract custom tags (excluding reserved system tags)
         var customTags = certificate.Properties.Tags
-            .Where(tag => tag.Key != IssuerKey && tag.Key != EndpointKey && tag.Key != DnsProviderKey && tag.Key != DnsAliasKey)
+            .Where(tag => tag.Key != IssuerKey && tag.Key != EndpointKey && tag.Key != DnsProviderKey && tag.Key != DnsAliasKey && tag.Key != DrReplicatedKey)
             .ToDictionary(tag => tag.Key, tag => tag.Value);
 
         return new CertificateItem
@@ -43,6 +43,7 @@ internal static class CertificateExtensions
             IsExpired = DateTimeOffset.UtcNow > certificate.Properties.ExpiresOn.GetValueOrDefault(DateTimeOffset.MaxValue),
             AcmeEndpoint = certificate.Properties.Tags.TryGetEndpoint(out var acmeEndpoint) ? NormalizeEndpoint(acmeEndpoint) : "",
             DnsAlias = certificate.Properties.Tags.TryGetDnsAlias(out var dnsAlias) ? dnsAlias : "",
+            UseDrReplication = certificate.Properties.Tags.TryGetDrReplicated(out var drReplicated) && drReplicated == "true",
             Tags = customTags
         };
     }
@@ -60,7 +61,8 @@ internal static class CertificateExtensions
             KeySize = certificate.Policy.KeySize,
             KeyCurveName = certificate.Policy.KeyCurveName?.ToString(),
             ReuseKey = certificate.Policy.ReuseKey,
-            DnsAlias = certificate.Properties.Tags.TryGetDnsAlias(out var dnsAlias) ? dnsAlias : ""
+            DnsAlias = certificate.Properties.Tags.TryGetDnsAlias(out var dnsAlias) ? dnsAlias : "",
+            UseDrReplication = certificate.Properties.Tags.TryGetDrReplicated(out var drReplicated) && drReplicated == "true"
         };
     }
 
@@ -84,7 +86,7 @@ internal static class CertificateExtensions
             foreach (var tag in certificatePolicyItem.Tags)
             {
                 // Skip reserved keys to avoid conflicts
-                if (tag.Key != IssuerKey && tag.Key != EndpointKey && tag.Key != DnsProviderKey && tag.Key != DnsAliasKey)
+                if (tag.Key != IssuerKey && tag.Key != EndpointKey && tag.Key != DnsProviderKey && tag.Key != DnsAliasKey && tag.Key != DrReplicatedKey)
                 {
                     metadata[tag.Key] = tag.Value;
                 }
@@ -98,6 +100,7 @@ internal static class CertificateExtensions
     private const string EndpointKey = "Endpoint";
     private const string DnsProviderKey = "DnsProvider";
     private const string DnsAliasKey = "DnsAlias";
+    private const string DrReplicatedKey = "DrReplicated";
 
     private const string IssuerValue = "Acmebot";
 
@@ -108,6 +111,8 @@ internal static class CertificateExtensions
     private static bool TryGetDnsProvider(this IDictionary<string, string> tags, [NotNullWhen(true)] out string? dnsProviderName) => tags.TryGetValue(DnsProviderKey, out dnsProviderName);
 
     private static bool TryGetDnsAlias(this IDictionary<string, string> tags, [NotNullWhen(true)] out string? dnsAlias) => tags.TryGetValue(DnsAliasKey, out dnsAlias);
+
+    private static bool TryGetDrReplicated(this IDictionary<string, string> tags, [NotNullWhen(true)] out string? drReplicated) => tags.TryGetValue(DrReplicatedKey, out drReplicated);
 
     private static string NormalizeEndpoint(string endpoint) => Uri.TryCreate(endpoint, UriKind.Absolute, out var legacyEndpoint) ? legacyEndpoint.Host : endpoint;
 }

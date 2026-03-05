@@ -36,6 +36,9 @@ public class CertificatePolicyItem : IValidatableObject
     [JsonProperty("tags")]
     public IDictionary<string, string>? Tags { get; set; }
 
+    [JsonProperty("useDrReplication")]
+    public bool UseDrReplication { get; set; }
+
     public IEnumerable<string> AliasedDnsNames => string.IsNullOrEmpty(DnsAlias) ? DnsNames : [DnsAlias];
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
