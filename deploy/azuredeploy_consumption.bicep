@@ -35,6 +35,9 @@ param keyVaultSkuName string = 'standard'
 @description('Enter the base URL of an existing Key Vault. (ex. https://example.vault.azure.net)')
 param keyVaultBaseUrl string = ''
 
+@description('Enter the base URL of an existing DR Key Vault for certificate replication. (ex. https://example.vault.azure.net) Leave empty to disable DR replication.')
+param drVaultBaseUrl string = ''
+
 @description('Specifies additional name/value pairs to be appended to the functionap app appsettings.')
 param additionalAppSettings array = []
 
@@ -45,6 +48,14 @@ var workspaceName = 'log-${appNamePrefix}-${substring(uniqueString(resourceGroup
 var storageAccountName = 'st${uniqueString(resourceGroup().id, deployment().name)}func'
 var keyVaultName = 'kv-${appNamePrefix}-${substring(uniqueString(resourceGroup().id, deployment().name), 0, 4)}'
 var roleDefinitionId = resourceId('Microsoft.Authorization/roleDefinitions/', 'a4417e6f-fecd-4de8-b567-7b0420556985')
+
+var drVaultAppSettings = !empty(drVaultBaseUrl) ? [
+  {
+    name: 'Acmebot:DrVaultBaseUrl'
+    value: drVaultBaseUrl
+  }
+] : []
+
 var acmebotAppSettings = [
   {
     name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
@@ -156,7 +167,7 @@ resource functionApp 'Microsoft.Web/sites@2024-11-01' = {
     httpsOnly: true
     serverFarmId: appServicePlan.id
     siteConfig: {
-      appSettings: concat(acmebotAppSettings, additionalAppSettings)
+      appSettings: concat(acmebotAppSettings, drVaultAppSettings, additionalAppSettings)
       netFrameworkVersion: 'v8.0'
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
