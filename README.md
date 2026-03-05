@@ -84,7 +84,7 @@ Opt-in certificate replication to a secondary Key Vault in a different region fo
 
 | Azure (Public) | Azure Government |
 | :---: | :---: |
-| <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprojecthosts%2Fkeyvault-acmebot%2Fmaster%2Fdeploy%2Fazuredeploy_consumption.bicep" target="_blank"><img src="https://aka.ms/deploytoazurebutton" /></a> | <a href="https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprojecthosts%2Fkeyvault-acmebot%2Fmaster%2Fdeploy%2Fazuredeploy_consumption.bicep" target="_blank"><img src="https://aka.ms/deploytoazurebutton" /></a> |
+| <a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprojecthosts%2Fkeyvault-acmebot%2Fmaster%2Fdeploy%2Fazuredeploy_consumption.json" target="_blank"><img src="https://aka.ms/deploytoazurebutton" /></a> | <a href="https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fprojecthosts%2Fkeyvault-acmebot%2Fmaster%2Fdeploy%2Fazuredeploy_consumption.json" target="_blank"><img src="https://aka.ms/deploytoazurebutton" /></a> |
 
 **Post-deployment: Authentication required.** Fresh deployments from the ARM template do not have authentication configured. The dashboard will return 401 Unauthorized until an identity provider is set up:
 
