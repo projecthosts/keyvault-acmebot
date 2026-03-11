@@ -38,6 +38,9 @@ param keyVaultBaseUrl string = ''
 @description('Enter the base URL of an existing DR Key Vault for certificate replication. (ex. https://example.vault.azure.net) Leave empty to disable DR replication.')
 param drVaultBaseUrl string = ''
 
+@description('The URI of the application ZIP package (e.g. blob URL with SAS token). Used for the function app deployment.')
+param packageUri string
+
 @description('Specifies additional name/value pairs to be appended to the functionap app appsettings.')
 param additionalAppSettings array = []
 
@@ -201,7 +204,7 @@ resource functionAppDeploy 'Microsoft.Web/sites/extensions@2025-03-01' = {
   parent: functionApp
   name: 'onedeploy'
   properties: {
-    packageUri: 'https://42000acmebot.blob.core.usgovcloudapi.net/releases/keyvault-acmebot.zip'
+    packageUri: packageUri
     remoteBuild: false
   }
 }

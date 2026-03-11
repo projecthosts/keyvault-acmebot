@@ -50,6 +50,9 @@ param drVaultBaseUrl string = ''
 @description('The resource group of the existing DR Key Vault. Required when createWithDrVault is false.')
 param drVaultResourceGroup string = ''
 
+@description('The URI of the application ZIP package (e.g. blob URL with SAS token). Used for WEBSITE_RUN_FROM_PACKAGE.')
+param packageUri string
+
 @description('Specifies additional name/value pairs to be appended to the function app appsettings.')
 param additionalAppSettings array = []
 
@@ -101,7 +104,7 @@ var acmebotAppSettings = [
   }
   {
     name: 'WEBSITE_RUN_FROM_PACKAGE'
-    value: 'https://42000acmebot.blob.core.usgovcloudapi.net/releases/keyvault-acmebot.zip'
+    value: packageUri
   }
   {
     name: 'FUNCTIONS_EXTENSION_VERSION'

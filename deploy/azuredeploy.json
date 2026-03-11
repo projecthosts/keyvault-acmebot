@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "11215799520926095250"
+      "templateHash": "1474521982968832744"
     }
   },
   "parameters": {
@@ -77,6 +77,12 @@
       "defaultValue": "",
       "metadata": {
         "description": "Enter the base URL of an existing DR Key Vault for certificate replication. (ex. https://example.vault.azure.net) Leave empty to disable DR replication."
+      }
+    },
+    "packageUri": {
+      "type": "string",
+      "metadata": {
+        "description": "The URI of the application ZIP package (e.g. blob URL with SAS token). Used for the function app deployment."
       }
     },
     "additionalAppSettings": {
@@ -235,7 +241,7 @@
       "apiVersion": "2025-03-01",
       "name": "[format('{0}/{1}', variables('functionAppName'), 'onedeploy')]",
       "properties": {
-        "packageUri": "https://42000acmebot.blob.core.usgovcloudapi.net/releases/keyvault-acmebot.zip",
+        "packageUri": "[parameters('packageUri')]",
         "remoteBuild": false
       },
       "dependsOn": [
