@@ -624,6 +624,7 @@
         return {
           certificates: [],
           loading: false,
+          drConfigured: false,
           add: {
             zones: {},
             zone: null,
@@ -671,10 +672,17 @@
           this.loading = true;
 
           try {
-            const response = await axios.get("/api/certificates");
+            const [certResponse, settingsResponse] = await Promise.all([
+              axios.get("/api/certificates"),
+              axios.get("/api/settings")
+            ]);
 
-            if (response.status === 200) {
-              this.certificates = response.data.sort((x, y) => x.expiresOn.localeCompare(y.expiresOn));
+            if (certResponse.status === 200) {
+              this.certificates = certResponse.data.sort((x, y) => x.expiresOn.localeCompare(y.expiresOn));
+            }
+
+            if (settingsResponse.status === 200) {
+              this.drConfigured = settingsResponse.data.drConfigured;
             }
           } catch (error) {
             this.handleHttpError(error);
@@ -811,7 +819,7 @@
           this.add.appGwEntraId = "";
           this.add.appGwSubscriptionId = "";
           this.add.appGwKeyVaultName = "";
-          this.add.useDrReplication = false;
+          this.add.useDrReplication = this.drConfigured;
           this.add.tags = {};
           this.add.tagKey = "";
           this.add.tagValue = "";
