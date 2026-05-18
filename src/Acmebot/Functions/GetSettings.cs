@@ -1,4 +1,4 @@
-using Acmebot.Options;
+﻿using Acmebot.Options;
 
 using Azure.Functions.Worker.Extensions.HttpApi;
 
