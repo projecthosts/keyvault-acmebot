@@ -71,14 +71,25 @@ public class SharedActivity(
 
                 if (certificateId is not null)
                 {
-                    var renewalInfo = await acmeProtocolClient.GetRenewalInfoAsync(certificateId);
-
-                    // 推奨ウィンドウが始まった場合は更新する
-                    if (renewalInfo.SuggestedWindow.Start < now)
+                    try
                     {
-                        result.Add(certificate.Value.ToCertificateItem());
+                        var renewalInfo = await acmeProtocolClient.GetRenewalInfoAsync(certificateId);
 
-                        continue;
+                        // 推奨ウィンドウが始まった場合は更新する
+                        if (renewalInfo.SuggestedWindow.Start < now)
+                        {
+                            result.Add(certificate.Value.ToCertificateItem());
+
+                            continue;
+                        }
+                    }
+                    catch (AcmeProtocolException ex)
+                    {
+                        // ARI is a best-effort optimization; if the ACME server cannot return
+                        // renewal info (e.g. a 404), fall back to the expiry-based check below
+                        // rather than aborting the whole renewal batch. Any non-ACME error is
+                        // intentionally left unhandled so unexpected failures still surface loudly.
+                        logger.LogWarning(ex, "Failed to retrieve ACME Renewal Information for {CertificateName}; falling back to expiry-based renewal", properties.Name);
                     }
                 }
             }
